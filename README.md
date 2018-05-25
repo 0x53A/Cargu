@@ -14,7 +14,7 @@ A simple command line parser with an Api ~stolen~ inspired from [Argu](https://g
 
 ## Parsing
 
-```
+```C#
         [Fact]
         public static void Parse()
         {
@@ -35,7 +35,7 @@ A simple command line parser with an Api ~stolen~ inspired from [Argu](https://g
 
 __Yes, this does correctly escape spaces / backslashes on windows, which is a PITA!__
 
-```
+```C#
         [Fact]
         public static void Unparse()
         {
