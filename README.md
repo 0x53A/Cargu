@@ -70,5 +70,5 @@ Simplified example: ``CLI_Args parsed = CliLib.Parse<CLI_Args>(args);``
 At first glance this looks perfect and exactly like what you want, but:
 
 * You don't know anymore whether the user actually specified something, or whether it was initialised to the default value (0 for int, false for bool, ...).
-* Unparsing is awkward for the same reason.
+* Unparsing is awkward for the same reason, if even supported at all.
 * I'm think the interface of Argu is absolutely great. Using anything else feels like sakrileg.
