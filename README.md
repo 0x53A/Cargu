@@ -67,4 +67,4 @@ At first glance this looks perfect and exactly like what you want, but:
 
 * You don't know anymore whether the user actually specified something, or whether it was initialised to the default value (0 for int, false for bool, ...).
 * Unparsing is awkward for the same reason.
-* I'm a total Eirik fanboy and think the interface of Argu is absolutely great. Using anything else feels like sakrileg.
+* I'm think the interface of Argu is absolutely great. Using anything else feels like sakrileg.
