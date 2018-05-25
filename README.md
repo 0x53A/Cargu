@@ -1,5 +1,9 @@
 # What
-A simple command line parser with an Api ~stolen~ inspired from [Argu](https://github.com/fsprojects/Argu)
+A simple command line parser with an Api ~stolen~ inspired from [Argu](https://github.com/fsprojects/Argu).
+
+## Status
+
+At the moment this is more of an experiment, I may use this at work and then port over the missing functionality from Argu.
 
 # Example
 
