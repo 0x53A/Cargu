@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 namespace Cargu
 {
@@ -50,6 +52,7 @@ namespace Cargu
     {
         IParseResults<TTemplate> Parse(string[] cliArgs, bool parseAppConfig);
         IUnparser<TTemplate> Unparse();
+        string PrintUsage(string appName = null);
     }
 
     public interface IParseResults<TTemplate>
@@ -127,6 +130,44 @@ namespace Cargu
 
 
             return new ParseResults<TTemplate>(result.ToResult());
+        }
+
+        string IArgumentParser<TTemplate>.PrintUsage(string appName)
+        {
+            if (appName == null)
+            {
+                appName = (Assembly.GetEntryAssembly()?.FullName ?? Process.GetCurrentProcess().MainModule.ModuleName) + ".exe";
+            }
+            var model = TemplateAnalyzer<TTemplate>.Instance;
+            var sb = new StringBuilder();
+
+            string AnalyzedPropertyToString(AnalyzedProperty p)
+            {
+                var sbp = new StringBuilder();
+                if (false == p.IsMandatory)
+                    sbp.Append("[");
+
+                sbp.Append(p.DefaultCliArg);
+
+                // TODO: values
+
+                if (false == p.IsMandatory)
+                    sbp.Append("]");
+                return sbp.ToString();
+            }
+
+            sb.AppendLine($"USAGE: {appName} {string.Join(" ", model.Properties.Values.Select(AnalyzedPropertyToString))}");
+            sb.AppendLine();
+            sb.AppendLine("OPTIONS:");
+            foreach (var p in model.Properties.Values)
+            {
+                // TODO: add Description attribute
+                sb.AppendLine($"    {p.DefaultCliArg}");
+
+                // TODO: values
+            }
+
+            return sb.ToString();
         }
 
         IUnparser<TTemplate> IArgumentParser<TTemplate>.Unparse()
@@ -277,7 +318,7 @@ namespace Cargu
 
     internal class AnalyzedTemplate
     {
-        public Dictionary<PropertyInfo, AnalyzedProperty> Properties {get;}
+        public Dictionary<PropertyInfo, AnalyzedProperty> Properties { get; }
         public AnalyzedTemplate(Type t)
         {
             var props = t.GetProperties();

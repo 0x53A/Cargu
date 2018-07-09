@@ -59,5 +59,20 @@ namespace Cargu.Tests
                                 .ToString();
             Assert.Equal("--count 10 --file \"c:\\x.txt\" --force", cmdLine);
         }
+
+        [Fact]
+        public static void Help()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args>();
+            var usage = parser.PrintUsage();
+            var expectedUsage = @"USAGE: testhost.x86.exe.exe [--count] [--file] [--force]
+
+OPTIONS:
+    --count
+    --file
+    --force
+";
+            Assert.Equal(expectedUsage.Trim(), usage.Trim());
+        }
     }
 }
