@@ -12,6 +12,14 @@ namespace Cargu
     // Exceptions
     // ------------------------------------------------------------------------------------
 
+    public class CommandLineHelpException : Exception
+    {
+        internal CommandLineHelpException(string message) : base(message)
+        {
+
+        }
+    }
+
     public class ArgumentNotFoundException : Exception
     {
     }
@@ -120,6 +128,8 @@ namespace Cargu
                 if (state == null)
                 {
                     var prop = model.Properties.Values.SingleOrDefault(p => p.AllCliArgs.Contains(current));
+                    if (prop == null)
+                        throw new CommandLineHelpException((this as IArgumentParser<TTemplate>).PrintUsage());
                     if (prop.IsMandatory) mandatoryProps.Remove(prop);
 
                     if (prop.Type == typeof(Toggle))

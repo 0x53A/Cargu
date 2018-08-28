@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using Xunit;
 
 namespace Cargu.Tests
@@ -9,6 +10,7 @@ namespace Cargu.Tests
         {
             public int Count { get; set; }
             public string File { get; set; }
+            [Description("Hello Description!")]
             public Toggle Force { get; set; }
         }
 
@@ -25,6 +27,38 @@ namespace Cargu.Tests
 
             Assert.Equal(5, count);
             Assert.Equal("c:\\x.txt", file);
+        }
+
+        [Fact]
+        public static void Parse_Wrong_ShouldThrow()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args>();
+            var exn = Assert.Throws<CommandLineHelpException>(() => parser.Parse(new[] { "--countx", "5", "--file", "c:\\x.txt", "--force" }, parseAppConfig: false));
+
+            const string expected = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
+
+OPTIONS:
+    --count 
+    --file  
+    --force Hello Description!
+";
+            Assert.Equal(expected, exn.Message);
+        }
+
+        [Fact]
+        public static void Parse_Help_ShouldThrow()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args>();
+            var exn = Assert.Throws<CommandLineHelpException>(() => parser.Parse(new[] { "--help" }, parseAppConfig: false));
+
+            const string expected = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
+
+OPTIONS:
+    --count 
+    --file  
+    --force Hello Description!
+";
+            Assert.Equal(expected, exn.Message);
         }
 
         [Fact]
@@ -70,7 +104,7 @@ namespace Cargu.Tests
 OPTIONS:
     --count 
     --file  
-    --force 
+    --force Hello Description!
 ";
             Assert.Equal(expectedUsage.Trim(), usage.Trim());
         }
@@ -85,7 +119,7 @@ OPTIONS:
 OPTIONS:
     --count 
     --file  
-    --force 
+    --force Hello Description!
 ";
             Assert.Equal(expectedUsage.Trim(), usage.Trim());
         }
