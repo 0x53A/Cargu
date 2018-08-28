@@ -33,6 +33,15 @@ namespace Cargu
     {
     }
 
+    /// <summary>
+    /// Demands at least one parsed result for this argument; a parse exception is raised otherwise.
+    /// </summary>
+    //[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    //public class DescriptionAttribute : Attribute
+    //{
+    //    DescriptionAttribute
+    //}
+
 
     // ------------------------------------------------------------------------------------
     // Types
@@ -47,12 +56,11 @@ namespace Cargu
     // ------------------------------------------------------------------------------------
     // Interfaces
     // ------------------------------------------------------------------------------------
-
     public interface IArgumentParser<TTemplate>
     {
         IParseResults<TTemplate> Parse(string[] cliArgs, bool parseAppConfig);
         IUnparser<TTemplate> Unparse();
-        string PrintUsage(string appName = null);
+        string PrintUsage();
     }
 
     public interface IParseResults<TTemplate>
@@ -79,14 +87,21 @@ namespace Cargu
 
     public static class ArgumentParser
     {
-        public static IArgumentParser<TTemplate> Create<TTemplate>()
+        public static IArgumentParser<TTemplate> Create<TTemplate>(string appName = null)
         {
-            return new ArgumentParser<TTemplate>();
+            return new ArgumentParser<TTemplate>(appName);
         }
     }
 
     internal class ArgumentParser<TTemplate> : IArgumentParser<TTemplate>
     {
+        private readonly string _appName;
+
+        public ArgumentParser(string appName)
+        {
+            _appName = appName;
+        }
+
         IParseResults<TTemplate> IArgumentParser<TTemplate>.Parse(string[] cliArgs, bool parseAppConfig)
         {
             if (parseAppConfig)
@@ -132,12 +147,10 @@ namespace Cargu
             return new ParseResults<TTemplate>(result.ToResult());
         }
 
-        string IArgumentParser<TTemplate>.PrintUsage(string appName)
+        string IArgumentParser<TTemplate>.PrintUsage()
         {
-            if (appName == null)
-            {
-                appName = (Assembly.GetEntryAssembly()?.FullName ?? Process.GetCurrentProcess().MainModule.ModuleName) + ".exe";
-            }
+            string appName = _appName ?? (Assembly.GetEntryAssembly()?.FullName ?? Process.GetCurrentProcess().MainModule.ModuleName);
+            
             var model = TemplateAnalyzer<TTemplate>.Instance;
             var sb = new StringBuilder();
 
@@ -149,7 +162,12 @@ namespace Cargu
 
                 sbp.Append(p.DefaultCliArg);
 
-                // TODO: values
+                if (p.Type != typeof(Toggle))
+                {
+                    // todo: tuple types
+                    sbp.Append(" ");
+                    sbp.Append(Utils.TypeToTypeHelp(p.Type));
+                }
 
                 if (false == p.IsMandatory)
                     sbp.Append("]");
@@ -159,12 +177,16 @@ namespace Cargu
             sb.AppendLine($"USAGE: {appName} {string.Join(" ", model.Properties.Values.Select(AnalyzedPropertyToString))}");
             sb.AppendLine();
             sb.AppendLine("OPTIONS:");
+            var maxValueLength = model.Properties.Values.Max(p => p.DefaultCliArg.Length);
             foreach (var p in model.Properties.Values)
             {
-                // TODO: add Description attribute
-                sb.AppendLine($"    {p.DefaultCliArg}");
-
+                sb.Append($"    {p.DefaultCliArg} ");
+                for (int i = 0; i < (maxValueLength - p.DefaultCliArg.Length); i++)
+                    sb.Append(" ");
                 // TODO: values
+                if (p.Description != null)
+                    sb.Append(p.Description);
+                sb.AppendLine();
             }
 
             return sb.ToString();
@@ -285,6 +307,10 @@ namespace Cargu
         public bool IsMandatory { get; set; }
         public string DefaultCliArg { get; }
         public string[] AllCliArgs { get; }
+        /// <summary>
+        /// Can be null if no description set
+        /// </summary>
+        public string Description { get; set; }
 
         public AnalyzedProperty(PropertyInfo p)
         {
@@ -293,6 +319,7 @@ namespace Cargu
             DefaultCliArg = "--" + p.Name.ToLower().Replace('_', '-');
             AllCliArgs = new[] { DefaultCliArg };
             IsMandatory = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(MandatoryAttribute));
+            Description = (string) p.GetCustomAttributesData().FirstOrDefault(a => a.Constructor.DeclaringType == typeof(System.ComponentModel.DescriptionAttribute) && a.ConstructorArguments.Count == 1)?.ConstructorArguments[0].Value;
         }
 
         public string Unparse(object o)
@@ -340,6 +367,22 @@ namespace Cargu
 
     internal static class Utils
     {
+        // in: System.Int32
+        // out: <int>
+        public static string TypeToTypeHelp(Type t)
+        {
+            if (t == typeof(int))
+                return "<int>";
+            else if (t == typeof(string))
+                return "<string>";
+            else if (t == typeof(bool))
+                return "<true|false>";
+            else if (t == typeof(double) ||
+                     t == typeof(float))
+                return "<number>";
+            return t.Name;
+        }
+
         public static PropertyInfo GetPropFromExpression<TTemplate, TResult>(Expression<Func<TTemplate, TResult>> expr)
         {
             // shamelessly copy-pasted from https://stackoverflow.com/a/672212/1872399

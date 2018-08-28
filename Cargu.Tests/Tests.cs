@@ -65,12 +65,27 @@ namespace Cargu.Tests
         {
             var parser = Cargu.ArgumentParser.Create<CLI_Args>();
             var usage = parser.PrintUsage();
-            var expectedUsage = @"USAGE: testhost.x86.exe.exe [--count] [--file] [--force]
+            var expectedUsage = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
 
 OPTIONS:
-    --count
-    --file
-    --force
+    --count 
+    --file  
+    --force 
+";
+            Assert.Equal(expectedUsage.Trim(), usage.Trim());
+        }
+
+        [Fact]
+        public static void Help_WithAppName()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args>("a.exe");
+            var usage = parser.PrintUsage();
+            var expectedUsage = @"USAGE: a.exe [--count <int>] [--file <string>] [--force]
+
+OPTIONS:
+    --count 
+    --file  
+    --force 
 ";
             Assert.Equal(expectedUsage.Trim(), usage.Trim());
         }
