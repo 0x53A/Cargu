@@ -10,7 +10,6 @@ build_job:
   script:
     - dotnet build -c Release
     - dotnet run --project Cargu.Tests/Cargu.Tests.csproj -c Release -f netcoreapp2.0
-    - dotnet run --project Cargu.Tests/Cargu.Tests.csproj -c Release -f net461
 
 deploy_job:
   stage: deploy
