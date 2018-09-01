@@ -16,6 +16,29 @@ namespace Cargu
 
     public class RequiredArgumentNotSuppliedException : Exception
     {
+        public string[] Missing { get; }
+        public RequiredArgumentNotSuppliedException(string[] missing) : base($"Missing mandatory props: '{string.Join(", ", missing)}'!")
+        {
+            Missing = missing;
+        }
+    }
+
+    public class UnrecognizedArgumentException : Exception
+    {
+        public string Argument { get; set; }
+        public UnrecognizedArgumentException(string arg) : base($"Encountered unrecognized argument '{arg}'")
+        {
+            Argument = arg;
+        }
+    }
+
+    public class DuplicateArgumentException : Exception
+    {
+        public string Argument { get; set; }
+        public DuplicateArgumentException(string arg) : base($"Encountered unique argument '{arg}' twice")
+        {
+            Argument = arg;
+        }
     }
 
 
@@ -28,6 +51,47 @@ namespace Cargu
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
     public class MandatoryAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Demands that the argument should be specified at most once; a parse exception is raised otherwise.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
+    public class UniqueAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Demands that the argument should be specified exactly once; a parse exception is raised otherwise.
+    /// Equivalent to attaching both the Mandatory and Unique attribute on the parameter.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
+    public class ExactlyOnceAttribute : Attribute
+    {
+    }
+
+    /// <summary>
+    /// Declares a custom default CLI identifier for the current parameter.
+    /// Replaces the auto-generated identifier name.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    public class CustomCommandLineAttribute : Attribute
+    {
+        public string Cli { get; }
+        public CustomCommandLineAttribute(string cli)
+        {
+            Cli = cli;
+        }
+    }
+
+    /// <summary>
+    /// Declares a set of secondary CLI identifiers for the current parameter.
+    /// Does not replace the default identifier which is either auto-generated
+    /// or specified by the CustomCommandLine attribute.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
+    public class AltCommandLineAttribute : Attribute
     {
     }
 
@@ -69,6 +133,12 @@ namespace Cargu
         string ToString();
     }
 
+    public interface IParser<TTemplate>
+    {
+
+    }
+
+
 
     // ------------------------------------------------------------------------------------
     // Implementations
@@ -95,35 +165,56 @@ namespace Cargu
                 if (p.IsMandatory) mandatoryProps.Add(p);
 
             AnalyzedProperty state = null;
+            List<string> tupleElements = new List<string>();
             LoookUp<PropertyInfo, object> result = new LoookUp<PropertyInfo, object>();
             for (int i = 0; i < cliArgs.Length; i++)
             {
                 var current = cliArgs[i];
                 if (state == null)
                 {
-                    var prop = model.Properties.Values.SingleOrDefault(p => p.AllCliArgs.Contains(current));
-                    if (prop.IsMandatory) mandatoryProps.Remove(prop);
+                    var prop = model.Properties.Values.SingleOrDefault(p => p.CliArgs.Contains(current));
+
+                    if (prop == null)
+                        throw new UnrecognizedArgumentException(current);
+
+                    if (prop.IsUnique && result.ContainsKey(prop.PropertyInfo))
+                        throw new DuplicateArgumentException(current);
+
+                    if (prop.IsMandatory)
+                        mandatoryProps.Remove(prop);
 
                     if (prop.Type == typeof(Toggle))
                         result.Add(prop.PropertyInfo, null);
                     else
-                    {
                         state = prop;
-                    }
                 }
                 else
                 {
-                    var val = state.Parse(current);
-                    result.Add(state.PropertyInfo, val);
-                    state = null;
+                    if (state.IsTupleType)
+                    {
+                        tupleElements.Add(current);
+                        if (tupleElements.Count == state.TupleElementTypes.Length)
+                        {
+                            var val = state.ParseTuple(tupleElements.ToArray());
+                            result.Add(state.PropertyInfo, val);
+                            state = null;
+                            tupleElements.Clear();
+                        }
+                    }
+                    else
+                    {
+                        var val = state.Parse(current);
+                        result.Add(state.PropertyInfo, val);
+                        state = null;
+                    }
                 }
             }
 
             if (state != null)
-                throw new Exception($"expected value for '{state.DefaultCliArg}'!");
+                throw new Exception($"expected value for '{state.CliArgs.First()}'!");
 
             if (mandatoryProps.Count != 0)
-                throw new Exception($"Missing mandatory props: '{string.Join(", ", mandatoryProps)}'!");
+                throw new RequiredArgumentNotSuppliedException(mandatoryProps.Select(x => x.CliArgs.First()).ToArray());
 
 
             return new ParseResults<TTemplate>(result.ToResult());
@@ -157,11 +248,19 @@ namespace Cargu
         IUnparser<TTemplate> IUnparser<TTemplate>.With<TValue>(Expression<Func<TTemplate, TValue>> expr, TValue value)
         {
             var prop = Utils.GetPropFromExpression(expr);
-
-            var key = TemplateAnalyzer<TTemplate>.Instance.Properties[prop].DefaultCliArg;
-            var val = TemplateAnalyzer<TTemplate>.Instance.Properties[prop].Unparse(value);
+            AnalyzedProperty aprop = TemplateAnalyzer<TTemplate>.Instance.Properties[prop];
+            var key = aprop.CliArgs.First();
             _tokens.Add(key);
-            _tokens.Add(val);
+            if (false == aprop.IsTupleType)
+            {
+                var val = aprop.Unparse(value);
+                _tokens.Add(val);
+            }
+            else
+            {
+                var values = aprop.UnparseTuple(value);
+                _tokens.AddRange(values);
+            }
 
             return this;
         }
@@ -170,7 +269,7 @@ namespace Cargu
         {
             var prop = Utils.GetPropFromExpression(expr);
 
-            var toggle = TemplateAnalyzer<TTemplate>.Instance.Properties[prop].DefaultCliArg;
+            var toggle = TemplateAnalyzer<TTemplate>.Instance.Properties[prop].CliArgs.First();
             _tokens.Add(toggle);
 
             return this;
@@ -242,16 +341,39 @@ namespace Cargu
         public PropertyInfo PropertyInfo { get; set; }
         public Type Type { get; set; }
         public bool IsMandatory { get; set; }
-        public string DefaultCliArg { get; }
-        public string[] AllCliArgs { get; }
+        public bool IsUnique { get; set; }
+        public string[] CliArgs { get; }
+
+        public bool IsTupleType { get; }
+        public Type[] TupleElementTypes { get; }
 
         public AnalyzedProperty(PropertyInfo p)
         {
             PropertyInfo = p;
             Type = p.PropertyType;
-            DefaultCliArg = "--" + p.Name.ToLower().Replace('_', '-');
-            AllCliArgs = new[] { DefaultCliArg };
-            IsMandatory = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(MandatoryAttribute));
+
+            bool hasMandatoryAttribute = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(MandatoryAttribute));
+            bool hasUniqueAttribute = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(UniqueAttribute));
+            bool hasExactlyOnceAttribute = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(ExactlyOnceAttribute));
+            var customCommandLine = (string)p.GetCustomAttributesData().FirstOrDefault(a => a.Constructor.DeclaringType == typeof(CustomCommandLineAttribute))?.ConstructorArguments.Single().Value;
+            var additionalCommandLines = p.GetCustomAttributesData().Where(a => a.Constructor.DeclaringType == typeof(AltCommandLineAttribute)).Select(a => (string)a.ConstructorArguments.Single().Value).ToArray();
+
+            IsMandatory = hasMandatoryAttribute || hasExactlyOnceAttribute;
+            IsUnique = hasUniqueAttribute || hasExactlyOnceAttribute;
+
+            var cliArgs = new List<string>();
+            if (customCommandLine != null)
+                cliArgs.Add(customCommandLine);
+            else
+                cliArgs.Add("--" + p.Name.ToLower().Replace('_', '-'));
+            cliArgs.AddRange(additionalCommandLines);
+            CliArgs = cliArgs.ToArray();
+
+            if (Type.FullName.StartsWith("System.ValueTuple`"))
+            {
+                IsTupleType = true;
+                TupleElementTypes = Type.GetGenericArguments();
+            }
         }
 
         public string Unparse(object o)
@@ -260,24 +382,62 @@ namespace Cargu
             return o.ToString();
         }
 
-        public object Parse(string s)
+        public string[] UnparseTuple(object o)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static object Parse(Type t, string s)
         {
             // whatever, add unit tests, fix what breaks.
-            if (Type == typeof(string))
+            if (t == typeof(string))
                 return s;
-            if (Type == typeof(int))
+            if (t == typeof(int))
                 return int.Parse(s);
-            if (Type == typeof(double))
+            if (t == typeof(double))
                 return double.Parse(s);  // note: take care of . vs ,!
-            if (Type == typeof(float))
+            if (t == typeof(float))
                 return float.Parse(s);  // note: take care of . vs ,!
-            return Convert.ChangeType(s, Type);
+            return Convert.ChangeType(s, t);
+        }
+
+        public object Parse(string s)
+        {
+            return Parse(Type, s);
+        }
+
+        public object ParseTuple(string[] strings)
+        {
+            if (false == IsTupleType)
+                throw new InvalidOperationException("This is not a tuple prop");
+            if (strings.Length != TupleElementTypes.Length)
+                throw new InvalidOperationException("Wrong tuple arity");
+            var objects = strings.Select((s, i) => Parse(TupleElementTypes[i], s)).ToArray();
+            switch (TupleElementTypes.Length)
+            {
+                case 1:
+                    return typeof(ValueTuple<>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 2:
+                    return typeof(ValueTuple<,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 3:
+                    return typeof(ValueTuple<,,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 4:
+                    return typeof(ValueTuple<,,,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 5:
+                    return typeof(ValueTuple<,,,,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 6:
+                    return typeof(ValueTuple<,,,,,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                case 7:
+                    return typeof(ValueTuple<,,,,,,>).MakeGenericType(typeArguments: TupleElementTypes).GetConstructor(types: TupleElementTypes).Invoke(parameters: objects);
+                default:
+                    throw new NotImplementedException("Tuple arities > 7 are not yet supported.");
+            }
         }
     }
 
     internal class AnalyzedTemplate
     {
-        public Dictionary<PropertyInfo, AnalyzedProperty> Properties {get;}
+        public Dictionary<PropertyInfo, AnalyzedProperty> Properties { get; }
         public AnalyzedTemplate(Type t)
         {
             var props = t.GetProperties();

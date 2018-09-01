@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExpressionToCodeLib;
+using System;
 using Xunit;
 
 namespace Cargu.Tests
@@ -59,5 +60,21 @@ namespace Cargu.Tests
                                 .ToString();
             Assert.Equal("--count 10 --file \"c:\\x.txt\" --force", cmdLine);
         }
+
+        public class CLI_With_Tuple
+        {
+            public (int, string, double) TupleSwitch { get; set; }
+        }
+
+        [Fact]
+        public static void Parse_Tuple()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_With_Tuple>();
+            var result = parser.Parse(new[] { "--tupleswitch", "5", "a", "1.1" }, parseAppConfig: false);
+            var expected = (5, "a", 1.1);
+            PAssert.That(() => (5, "a", 1.1) == (5, "a", 1.1));
+            PAssert.That(() => result.GetResult(x => x.TupleSwitch).Equals(expected));
+        }
+
     }
 }

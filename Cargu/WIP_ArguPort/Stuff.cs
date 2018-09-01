@@ -15,23 +15,6 @@ namespace Cargu.WIP_ArguPort
     }
 
     /// <summary>
-    /// Demands that the argument should be specified at most once; a parse exception is raised otherwise.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
-    public class UniqueAttribute : Attribute
-    {
-    }
-
-    /// <summary>
-    /// Demands that the argument should be specified exactly once; a parse exception is raised otherwise.
-    /// Equivalent to attaching both the Mandatory and Unique attribute on the parameter.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
-    public class ExactlyOnceAttribute : Attribute
-    {
-    }
-
-    /// <summary>
     /// Denotes that the given argument should accummulate any unrecognized arguments it encounters.
     /// Must contain a single field of type string
     /// </summary>
@@ -62,25 +45,6 @@ namespace Cargu.WIP_ArguPort
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false)]
     public class NoAppSettingsAttribute : Attribute
-    {
-    }
-
-    /// <summary>
-    /// Declares a custom default CLI identifier for the current parameter.
-    /// Replaces the auto-generated identifier name.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public class CustomCommandLineAttribute : Attribute
-    {
-    }
-
-    /// <summary>
-    /// Declares a set of secondary CLI identifiers for the current parameter.
-    /// Does not replace the default identifier which is either auto-generated
-    /// or specified by the CustomCommandLine attribute.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-    public class AltCommandLineAttribute : Attribute
     {
     }
 

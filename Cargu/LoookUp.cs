@@ -9,7 +9,7 @@ namespace Cargu
     internal class LoookUp<TKey, TVal>
     {
         private Dictionary<TKey, List<TVal>> _data = new Dictionary<TKey, List<TVal>>();
-        
+
         public void Add(TKey key, TVal val)
         {
             List<TVal> l;
@@ -20,6 +20,14 @@ namespace Cargu
             }
 
             l.Add(val);
+        }
+
+        public bool ContainsKey(TKey key)
+        {
+            if (_data.TryGetValue(key, out var l))
+                return l.Count > 0;
+
+            return false;
         }
 
         public Dictionary<TKey, TVal[]> ToResult()
