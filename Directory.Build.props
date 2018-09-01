@@ -1,0 +1,19 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>7.3</LangVersion>
+
+    <Authors>0x53A</Authors>
+    <Company>0x53A</Company>
+    <Description>A simple command line parser</Description>
+    <PackageProjectUrl>https://github.com/0x53A/Cargu</PackageProjectUrl>
+    <PackageTags>command-line-parser</PackageTags>
+    
+    <_Version>0.2</_Version>
+    
+    <Version>$(_Version)-local</Version>
+    <Version Condition=" '$(CI_PIPELINE_IID)' != '' ">$(_Version)-gitlab.$(CI_PIPELINE_IID)</Version>
+    <Version Condition=" '$(CI_PIPELINE_IID)' != '' AND '$(CI_REF)' == 'release' ">$(_Version)</Version>
+  </PropertyGroup>
+  
+</Project>
