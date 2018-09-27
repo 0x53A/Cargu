@@ -9,7 +9,7 @@
     <PackageProjectUrl>https://github.com/0x53A/Cargu</PackageProjectUrl>
     <PackageTags>command-line-parser</PackageTags>
     
-    <_Version>0.1.2</_Version>
+    <_Version>0.1.3</_Version>
     
     <Version>$(_Version)-local</Version>
     <Version Condition=" '$(CI_PIPELINE_IID)' != '' ">$(_Version)-gitlab.$(CI_PIPELINE_IID)</Version>
