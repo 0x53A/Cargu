@@ -1,3 +1,5 @@
+Get it on [nuget](https://www.nuget.org/packages/Cargu/).
+
 # What
 A simple command line parser with an Api ~stolen~ inspired from [Argu](https://github.com/fsprojects/Argu).
 
