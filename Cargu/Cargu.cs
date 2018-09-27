@@ -160,7 +160,7 @@ namespace Cargu
         string IArgumentParser<TTemplate>.PrintUsage()
         {
             string appName = _appName ?? (Assembly.GetEntryAssembly()?.FullName ?? Process.GetCurrentProcess().MainModule.ModuleName);
-            
+            appName = appName.Split(',').First();
             var model = TemplateAnalyzer<TTemplate>.Instance;
             var sb = new StringBuilder();
 

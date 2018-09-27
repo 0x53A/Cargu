@@ -80,7 +80,7 @@ namespace Cargu.Tests
             var parser = Cargu.ArgumentParser.Create<CLI_Args>();
             var exn = Assert.Throws<CommandLineHelpException>(() => parser.Parse(new[] { "--countx", "5", "--file", "c:\\x.txt", "--force" }, parseAppConfig: false));
 
-            const string expected = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
+            const string expected = @"USAGE: Cargu.Tests [--count <int>] [--file <string>] [--force]
 
 OPTIONS:
     --count 
@@ -96,7 +96,7 @@ OPTIONS:
             var parser = Cargu.ArgumentParser.Create<CLI_Args>();
             var exn = Assert.Throws<CommandLineHelpException>(() => parser.Parse(new[] { "--help" }, parseAppConfig: false));
 
-            const string expected = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
+            const string expected = @"USAGE: Cargu.Tests [--count <int>] [--file <string>] [--force]
 
 OPTIONS:
     --count 
@@ -144,7 +144,7 @@ OPTIONS:
         {
             var parser = Cargu.ArgumentParser.Create<CLI_Args>();
             var usage = parser.PrintUsage();
-            var expectedUsage = @"USAGE: testhost.x86.exe [--count <int>] [--file <string>] [--force]
+            var expectedUsage = @"USAGE: Cargu.Tests [--count <int>] [--file <string>] [--force]
 
 OPTIONS:
     --count 
