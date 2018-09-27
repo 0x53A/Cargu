@@ -15,8 +15,10 @@ namespace Cargu.Tests
         public static int Main(string[] args)
         {
             var tests = Runner.TestList("TestClass", DiscoverTestMethods<Tests>());
-            return Runner.RunTestsWithArgs(Impl.ExpectoConfig.defaultConfig, args, tests);
-
+            var config =
+                Impl.ExpectoConfig.defaultConfig
+                .AddJUnitSummary("testresults.junit.xml", "Cargu.Tests");
+            return Runner.RunTestsWithArgs(config, args, tests);
         }
 
 
