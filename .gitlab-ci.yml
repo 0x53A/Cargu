@@ -11,6 +11,11 @@ build_job:
     - dotnet build -c Release
     - dotnet run --project Cargu.Tests/Cargu.Tests.csproj -c Release -f netcoreapp2.0
 
+  artifacts:
+    reports:
+      junit:
+        - '*.junit.xml'
+
 deploy_job:
   stage: deploy
   only:
