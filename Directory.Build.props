@@ -13,7 +13,7 @@
     
     <Version>$(_Version)-local</Version>
     <Version Condition=" '$(CI_PIPELINE_IID)' != '' ">$(_Version)-gitlab.$(CI_PIPELINE_IID)</Version>
-    <Version Condition=" '$(CI_PIPELINE_IID)' != '' AND '$(CI_REF)' == 'release' ">$(_Version)</Version>
+    <Version Condition=" '$(CI_PIPELINE_IID)' != '' AND '$(CI_COMMIT_REF_NAME)' == 'release' ">$(_Version)</Version>
   </PropertyGroup>
   
 </Project>
