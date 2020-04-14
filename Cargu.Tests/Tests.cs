@@ -170,5 +170,36 @@ OPTIONS:
 ";
             PAssert.That(() => expectedUsage.Trim() == usage.Trim());
         }
+
+
+        [Flags] enum TestEnum { CaseA, CaseB, CaseC }
+
+        class CLI_Args_WithEnum
+        {
+            public TestEnum EnumValue { get; set; }
+        }
+
+        [Tests]
+        public static void ParseEnum()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args_WithEnum>();
+            var result = parser.Parse(new[] { "--enumvalue", "CaseA" }, parseAppConfig: false);
+
+            var enumVal = result.GetResult(x => x.EnumValue);
+            PAssert.That(() => TestEnum.CaseA == enumVal);
+        }
+
+        [Tests]
+        public static void Help_Enum()
+        {
+            var parser = Cargu.ArgumentParser.Create<CLI_Args_WithEnum>();
+            var usage = parser.PrintUsage();
+            var expectedUsage = @"USAGE: Cargu.Tests [--enumvalue <CaseA|CaseB|CaseC>]
+
+OPTIONS:
+    --enumvalue 
+";
+            PAssert.That(() => expectedUsage.Trim() == usage.Trim());
+        }
     }
 }

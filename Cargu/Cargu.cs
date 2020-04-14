@@ -329,7 +329,7 @@ namespace Cargu
             DefaultCliArg = "--" + p.Name.ToLower().Replace('_', '-');
             AllCliArgs = new[] { DefaultCliArg };
             IsMandatory = p.GetCustomAttributesData().Any(a => a.Constructor.DeclaringType == typeof(MandatoryAttribute));
-            Description = (string) p.GetCustomAttributesData().FirstOrDefault(a => a.Constructor.DeclaringType == typeof(System.ComponentModel.DescriptionAttribute) && a.ConstructorArguments.Count == 1)?.ConstructorArguments[0].Value;
+            Description = (string)p.GetCustomAttributesData().FirstOrDefault(a => a.Constructor.DeclaringType == typeof(System.ComponentModel.DescriptionAttribute) && a.ConstructorArguments.Count == 1)?.ConstructorArguments[0].Value;
         }
 
         public string Unparse(object o)
@@ -349,6 +349,8 @@ namespace Cargu
                 return double.Parse(s);  // note: take care of . vs ,!
             if (Type == typeof(float))
                 return float.Parse(s);  // note: take care of . vs ,!
+            if (Type.IsEnum)
+                return Enum.Parse(Type, s);
             return Convert.ChangeType(s, Type);
         }
     }
@@ -390,6 +392,8 @@ namespace Cargu
             else if (t == typeof(double) ||
                      t == typeof(float))
                 return "<number>";
+            else if (t.IsEnum)
+                return $"<{string.Join("|", Enum.GetNames(t))}>";
             return t.Name;
         }
 
